@@ -55,9 +55,17 @@ Some users will say "I know what Docker is but I've never used `gh`." Treat the 
 
 ## When to invoke
 
-- A user invokes `/exoskeleton-install` and the probe finds missing prerequisites
-- A user explicitly invokes `/exoskeleton-bootstrap` on a fresh machine
+- A user invokes `/exoskeleton-install` and the probe finds missing prerequisites (any `✗` row → install missing pieces)
+- A user invokes `/exoskeleton-install` and the probe finds drift (any `~` row → reconcile path; jump to Phase 5b)
+- A user explicitly invokes `/exoskeleton-bootstrap` on a fresh machine (run all phases)
+- A user explicitly invokes `/exoskeleton-bootstrap --reconcile` to fix MCP drift only (skip directly to Phase 5b)
 - A user moved to a new laptop and wants the same stack working there
+
+## Invocation modes
+
+- **Default** (`/exoskeleton-bootstrap`) — full pass: Phase 0 (probe) → 1 (package manager) → 2 (CLI tools) → 3 (Docker) → 4 (credentials) → 5 (MCP install). Skips Phase 5b unless drift detected.
+- **Reconcile** (`/exoskeleton-bootstrap --reconcile`) — jump straight to Phase 5b. Diffs existing MCPs against canonical fingerprints, asks the user per drift, preserves Foreign servers. Use after `/exoskeleton-install` probe reports `~` rows.
+- **Clean** (`/exoskeleton-bootstrap --clean`) — explicitly remove all canonical MCPs first, then run Phase 5 fresh. Destructive; only use when the user explicitly asks for a clean reinstall.
 
 ## When NOT to invoke
 
@@ -336,22 +344,82 @@ The exoskeleton's discipline (Pre-Change Protocol, the four guards, parity check
 
 Mix in a different tool and the protocol either fails closed or starts lying. Don't substitute.
 
+### Phase 5b — Reconcile existing MCPs (adjust / update / remove)
+
+When the user has an existing setup (not a fresh laptop), some MCPs may already be installed — possibly with **stale or wrong commands**. The probe alone only checks "does an MCP with this name exist?" — it doesn't catch "exists but misconfigured."
+
+This phase reconciles. Use it when the user is **upgrading** to the canonical stack, not bootstrapping from scratch.
+
+#### Step 1 — Inventory what's currently installed
+
+```bash
+claude mcp list 2>&1
+```
+
+For each row, the AI captures: (a) the server name, (b) the command it's registered with, (c) whether the name appears in our canonical six.
+
+#### Step 2 — Diff against canonical
+
+Compare against the canonical six. Three buckets:
+
+- **Match** — server installed AND command matches the canonical → leave alone
+- **Drift** — server installed BUT command differs (e.g. old Serena install path, stale version pin) → remove + reinstall
+- **Foreign** — server installed but not part of the canonical six → leave alone unless the user says otherwise
+
+#### Step 3 — Resolve drift
+
+For each `Drift` entry, **ask the user first** in concierge mode. Example:
+
+> Your `serena` MCP is installed but with a slightly different command than the canonical one:
+> - Current: `uvx serena` (older path)
+> - Canonical: `uvx --from git+https://github.com/oraios/serena serena start-mcp-server --context ide-assistant`
+> Do you want to update it? (y/n)
+
+On `y`:
+
+```bash
+claude mcp remove <name>
+claude mcp add <name> -- <canonical command>
+```
+
+On `n`, the AI documents the divergence in a note for later and moves on. Don't silently overwrite — drift may be intentional.
+
+#### Step 4 — Add missing servers (same as Phase 5)
+
+For canonical servers that aren't installed at all, fall back to the Phase 5 add commands.
+
+#### Step 5 — Verify each adjustment landed
+
+```bash
+claude mcp list 2>&1 | grep -E "serena|jcodemunch|jdocmunch|mempalace|mariadb|postgres|sqlite|playwright|MCP_DOCKER|claude-in-chrome"
+```
+
+Confirm all canonical six (or their alias-equivalents) appear with the expected commands.
+
+#### When to skip Phase 5b
+
+If Phase 0's system probe came back with `0 of 6 MCPs installed`, skip 5b — there's nothing to reconcile, the fresh-install Phase 5 covers it.
+
+If the user invoked the bootstrap with `--clean` (passed via the orchestrator), explicitly remove all existing canonical-six servers first, then run Phase 5 fresh. Don't reconcile — overwrite.
+
 ### Phase 6 — Final verification
 
 Re-run the system probe from Phase 0. Every row should be green.
 
 ```bash
-docker info >/dev/null 2>&1 && echo "✓ Docker"           || echo "✗ Docker"
-gh auth status >/dev/null 2>&1 && echo "✓ GitHub"         || echo "✗ GitHub"
-git config --global user.email | grep -q '@' && echo "✓ git identity" || echo "✗ git identity"
-[ -f ~/.ssh/id_ed25519.pub ] && echo "✓ SSH key"          || echo "✗ SSH key"
+if docker info >/dev/null 2>&1; then echo "✓ Docker"; else echo "✗ Docker"; fi
+if gh auth status >/dev/null 2>&1; then echo "✓ GitHub"; else echo "✗ GitHub"; fi
+if git config --global user.email | grep -q '@'; then echo "✓ git identity"; else echo "✗ git identity"; fi
+if [ -f ~/.ssh/id_ed25519.pub ] || [ -f ~/.ssh/id_rsa.pub ]; then echo "✓ SSH key"; else echo "✗ SSH key"; fi
 
 # Every server in the canonical stack:
-for srv in serena jcodemunch jdocmunch mempalace playwright; do
-  claude mcp list 2>/dev/null | grep -q "$srv" && echo "✓ $srv" || echo "✗ $srv"
+for srv in serena jcodemunch jdocmunch mempalace; do
+  if claude mcp list 2>/dev/null | grep -q "$srv"; then echo "✓ $srv"; else echo "✗ $srv"; fi
 done
+# Browser automation — direct playwright OR MCP_DOCKER / claude-in-chrome alias paths:
+if claude mcp list 2>/dev/null | grep -qE "playwright|MCP_DOCKER|claude-in-chrome"; then echo "✓ browser automation"; else echo "✗ browser automation"; fi
 # Plus the DB MCP matched to the project's primary DB:
-claude mcp list 2>/dev/null | grep -qE "mariadb|postgres|sqlite" && echo "✓ DB MCP" || echo "✗ DB MCP"
+if claude mcp list 2>/dev/null | grep -qE "mariadb|postgres|sqlite"; then echo "✓ DB MCP"; else echo "✗ DB MCP"; fi
 ```
 
 If all green, tell the user:

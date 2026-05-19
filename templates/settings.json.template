@@ -51,9 +51,7 @@
             "timeout": 5000
           }
         ]
-      }
-    ],
-    "PreToolUse_kg_query": [
+      },
       {
         "matcher": "mcp__.*__kg_query",
         "hooks": [

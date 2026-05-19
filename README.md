@@ -1,6 +1,6 @@
 # exoskeleton
 
-A bundle of five Claude Code skills that bootstrap the **Operator-Architect multi-agent stack** from the [*Two Suits* builder's guide](https://christianmerkel.com/two-suits/builders-guide) into any project, local-first, in about ten minutes.
+A bundle of six Claude Code skills that bootstrap the **Operator-Architect multi-agent stack** from the [*Two Suits* builder's guide](https://christianmerkel.com/two-suits/builders-guide) into any project, local-first, in about ten minutes.
 
 The article *Two Suits* tells the story. **The exoskeleton is what does the work.** This is the exoskeleton.
 

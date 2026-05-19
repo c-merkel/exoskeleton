@@ -11,7 +11,7 @@ This skill walks the production-server side of the Exoskeleton stack: deploying 
 
 ## When to invoke
 
-- The user has run `/two-suits-install` and the local stack is up
+- The user has run `/exoskeleton-install` and the local stack is up
 - `/verify-stack` is green
 - The user wants to deploy to a production server (any VPS — IONOS, Hetzner, Linode, DigitalOcean, AWS Lightsail, your home server)
 
@@ -37,7 +37,7 @@ Tell the user, in plain English:
 >
 > 1. The production server has a public IP.
 > 2. Caddy auto-issues TLS for your domain.
-> 3. Environment variables live in `/etc/two-suits/.env` (not in the repo).
+> 3. Environment variables live in `/etc/<PROJECT_SLUG>/.env` (not in the repo).
 > 4. The deploy script takes a database backup before every deploy.
 > 5. If the post-deploy health check fails, the previous version is restored from that backup automatically.
 >

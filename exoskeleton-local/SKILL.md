@@ -31,7 +31,7 @@ If invoked standalone, ask the user:
 - Web framework / language
 - Whether they want a reverse proxy with auto-TLS for the local cert (Caddy is the default)
 
-If invoked by `/two-suits-install`, read the answers from the user's prior responses in this conversation.
+If invoked by `/exoskeleton-install`, read the answers from the user's prior responses in this conversation.
 
 ### Step 2 — Write `docker-compose.yml`
 

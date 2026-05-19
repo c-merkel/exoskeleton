@@ -1,6 +1,6 @@
 ---
 name: exoskeleton-install
-description: Orchestrator skill that bootstraps the full Exoskeleton stack (the AI exoskeleton from the Two Suits story) into a project. Runs five stage skills in sequence — Stage 0 system bootstrap (Docker, gh CLI, MCP servers, GitHub auth), then local environment, operating manual, the four guards, optional VPS — local first, production opt-in. Use when starting a new repo, onboarding AI to an existing repo, or setting up a fresh laptop from scratch. Companion to the Two Suits builder's guide.
+description: Orchestrator skill that bootstraps the full Exoskeleton stack (the AI exoskeleton from the Two Suits story) into a project. Coordinates six stage skills — Stage 0 system bootstrap (Docker, gh CLI, MCP servers, GitHub auth), then local environment, operating manual, the four guards, optional VPS — local first, production opt-in. Use when starting a new repo, onboarding AI to an existing repo, or setting up a fresh laptop from scratch. Companion to the Two Suits builder's guide.
 ---
 
 # Exoskeleton — Install (Orchestrator)
@@ -19,35 +19,77 @@ This skill bootstraps the **Exoskeleton** stack — the working AI exoskeleton f
 
 When invoked, walk the user through these steps in order. Announce each step. Use TodoWrite to track progress.
 
-### Step 0 — System probe + bootstrap (NEW — Stage 0)
+### Step −1 — Mode selection (the FIRST thing you ask)
+
+Before the probe, before any commands, the AI's very first message to the user is a warm welcome + this question:
+
+> **Welcome! Before we start, one quick question so I can pace this right for you:**
+>
+> Have you set up a development environment before — installed Docker, used a terminal, all that?
+>
+> **A.** First time, or it's been a while. Walk me through every step.
+> **B.** I've done this before. Move fast, less hand-holding.
+
+The user's answer picks the pacing mode for the *entire* rest of this orchestrator AND any sub-skills it dispatches.
+
+- **Answer A** → switch into **Concierge Mode**. Slow pace, one step at a time, plain-English preambles, reassurance, celebration at each win. Detailed rules in `exoskeleton-bootstrap/SKILL.md` § "Concierge Mode". The orchestrator inherits and passes this to every sub-skill via the dispatch prompt.
+- **Answer B** → Express Mode. Compact pace, less narration. Skip preambles and celebrations. Still verify after each install.
+
+Store this answer for the rest of the session. If the user later says "slow down" or "go faster," switch modes mid-flow.
+
+### Step 0 — System probe + bootstrap handoff
 
 Before touching the project, verify the user's machine has everything the stack will need. Run a fast probe — the canonical stack is opinionated, six MCP servers, all required:
 
 ```bash
-which docker && docker info >/dev/null 2>&1 && echo "✓ docker"   || echo "✗ docker"
-which git && git config --global user.email >/dev/null && echo "✓ git" || echo "✗ git"
-which gh && gh auth status >/dev/null 2>&1 && echo "✓ gh authed" || echo "✗ gh"
-[ -f ~/.ssh/id_ed25519.pub ] || [ -f ~/.ssh/id_rsa.pub ] && echo "✓ SSH key" || echo "✗ SSH key"
+if command -v docker >/dev/null && docker info >/dev/null 2>&1; then echo "✓ docker"; else echo "✗ docker"; fi
+if command -v git >/dev/null && git config --global user.email >/dev/null 2>&1; then echo "✓ git"; else echo "✗ git"; fi
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then echo "✓ gh authed"; else echo "✗ gh"; fi
+if [ -f ~/.ssh/id_ed25519.pub ] || [ -f ~/.ssh/id_rsa.pub ]; then echo "✓ SSH key"; else echo "✗ SSH key"; fi
 
-# Canonical MCP stack — every server required, not "at least one"
-for srv in serena jcodemunch jdocmunch mempalace playwright; do
-  claude mcp list 2>/dev/null | grep -q "$srv" && echo "✓ $srv" || echo "✗ $srv"
-done
-claude mcp list 2>/dev/null | grep -qE "mariadb|postgres|sqlite" && echo "✓ DB MCP" || echo "✗ DB MCP"
+# Canonical MCP stack — three-state probe:
+#   ✓ = installed AND command matches canonical fingerprint
+#   ~ = installed BUT command differs (drift — fix via Phase 5b reconcile)
+#   ✗ = missing (install via Phase 5)
+#
+# For each canonical server we check that the registered command contains a known fingerprint string.
+# Browser automation is broad: direct playwright OR the MCP_DOCKER / claude-in-chrome alias paths.
+mcp_check() {
+  local srv="$1" fingerprint="$2"
+  local line
+  line=$(claude mcp list 2>/dev/null | grep -i "$srv" | head -1)
+  if [ -z "$line" ]; then echo "✗ $srv (missing)"; return 1; fi
+  if echo "$line" | grep -qiE "$fingerprint"; then echo "✓ $srv"; return 0; fi
+  echo "~ $srv (drift — installed with non-canonical command)"; return 2
+}
+
+mcp_check "serena"     "oraios/serena|serena start-mcp-server"
+mcp_check "jcodemunch" "jcodemunch"
+mcp_check "jdocmunch"  "jdocmunch"
+mcp_check "mempalace"  "mempalace"
+if claude mcp list 2>/dev/null | grep -qE "playwright|MCP_DOCKER|claude-in-chrome"; then echo "✓ browser automation"; else echo "✗ browser automation"; fi
+if claude mcp list 2>/dev/null | grep -qE "mariadb|postgres|sqlite"; then echo "✓ DB MCP"; else echo "✗ DB MCP"; fi
 ```
 
-**If any row is `✗`:** invoke `/exoskeleton-bootstrap` and let it handle the missing prerequisites. The bootstrap skill:
+**Three handoff paths based on the probe rows:**
 
-- Detects OS (macOS / Linux / WSL2)
-- Installs Homebrew if missing (macOS)
-- Installs Docker Desktop, gh CLI, jq, python3
-- Walks the user through GitHub auth + SSH key generation
-- Installs the canonical six MCP servers (Serena + jCodeMunch + jDocMunch + MemPalace + DB MCP + Playwright)
-- Verifies every install before moving on
+- **Any `✗` row (missing prerequisite):** invoke `/exoskeleton-bootstrap` to install. Bootstrap walks Phases 0–5: OS detection, Homebrew (macOS), Docker Desktop, gh CLI, jq, python3, GitHub auth + SSH key generation, then installs the missing canonical MCP servers. Verifies each install before moving on.
+
+- **Any `~` row (drift — MCP installed but with non-canonical command):** invoke `/exoskeleton-bootstrap --reconcile` to enter Phase 5b. The reconcile flow inventories existing MCPs, diffs against the canonical fingerprints, asks the user in concierge mode before fixing each drift, and preserves any Foreign MCPs the user has for other projects. Critical for upgrade paths — without this, a stale Serena (or any other canonical MCP installed with an outdated command) would never get caught by a name-only probe.
+
+- **Every row `✓`:** skip directly to Step 1. The machine is fully aligned with the canonical stack.
 
 Bootstrap is honest about what requires user action — sudo passwords, GUI installers (Docker Desktop), browser auth (gh login) cannot be automated by the skill. It guides + verifies.
 
-**If every row is `✓`:** skip directly to Step 1.
+#### Returning to this orchestrator after bootstrap
+
+**Important — after the bootstrap (or reconcile) finishes, control returns here.** The user does **not** need to re-invoke `/exoskeleton-install`. Continue automatically to Step 1 (Discover the project). In Concierge Mode, announce the transition with a celebratory line first — e.g.:
+
+> *"Beautiful — your machine is fully equipped. Now let's set up your project itself. ☕"*
+
+Then proceed to Step 1.
+
+If the user's pacing mode was set in Step −1, it stays in effect for the remainder of this orchestrator and any further sub-skill dispatches (manual, guards, deploy).
 
 ### Step 1 — Discover the project
 
