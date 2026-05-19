@@ -1,0 +1,144 @@
+# CLAUDE.md — <PROJECT_NAME>
+
+Guidance for Claude sessions in this repo. Read first before making changes.
+
+## What this project is
+
+**<PROJECT_NAME>** — <PROJECT_DESCRIPTION>
+
+The platform runs across <LAYERS_COUNT> layers: <LAYERS_LIST>.
+
+Production runs the same container topology as local development — no environment drift.
+
+---
+
+## MANDATORY workflows
+
+### Pre-Change Protocol — triage first
+
+Before editing ANY file, classify the request:
+
+**A. Cross-layer change** (any change that touches more than one of: <LAYERS_LIST>):
+
+1. Query the knowledge graph for the entity / field / surface being changed.
+2. Verify each touch-point in parallel — live DB schema, code symbols, route definitions.
+3. Get the blast radius — what depends on the symbol you're about to modify.
+4. Run the local sync / parity guard.
+5. Check history — past decisions, known bugs, project rules.
+6. **State the plan back to the operator** BEFORE writing code.
+
+**B. Pure code change** (one layer):
+1. Get symbol overview.
+2. Get blast radius + references.
+3. Knowledge graph only if signals fire (sync file, schema field, canonical component).
+4. State the plan.
+
+**C. Debug**: all in parallel — symbol lookup + call hierarchy + git log + memory search + KnownBug query. Synthesize before fixing.
+
+---
+
+### Tool Selection Protocol
+
+Five questions, in order:
+
+1. **Code-file question on indexed repo?** → use the code intel server (Serena). **Read / Grep FORBIDDEN for code-file discovery on indexed repos.**
+2. **Doc question?** → use the doc retrieval server.
+3. **Cross-cutting wiring?** → query the knowledge graph first.
+4. **Output too large?** → summarize via a read-only researcher subagent.
+5. **Conceptual / strategic?** → answer directly.
+
+---
+
+### Source-of-truth precedence
+
+When sources disagree:
+
+1. Live DB schema (the live-DB MCP against information_schema)
+2. Live code (Serena reading symbol bodies)
+3. Live API responses
+4. Knowledge graph (mine-generated index of 1–3 + hand-curated decisions)
+5. Markdown docs (fallback only; may be stale)
+
+If memory contradicts what the operator just said, **trust the operator** and flag the discrepancy.
+
+---
+
+## The Four Sentinels — hard rules
+
+Non-AI guards at the perimeter. Bash + python only. No AI in any guard.
+
+1. **Pre-Change Protocol Hook** — warns on edits to load-bearing files without prior KG query. Override: `<PROJECT_SLUG>_SKIP_PCP=1`.
+2. **Schema-Verify** — blocks destructive DB ops against un-inspected tables. Override: `<PROJECT_SLUG>_SKIP_SCHEMA_CHECK=1`.
+3. **Parity Check** — pre-commit gate; refuses if any two layers disagree. Override: `<PROJECT_SLUG>_SKIP_PARITY=1`.
+4. **Knowledge-Graph Refresh** — auto-rebuilds the system map on meaningful commits. Override: `<PROJECT_SLUG>_SKIP_KG_REFRESH=1`.
+
+When a Sentinel refuses: **almost never override.** Ask why it's right.
+
+---
+
+## Sub-agent tiers
+
+| Tier | Agent | Model | Job |
+|---|---|---|---|
+| Architect | `architect` | <ARCHITECT_MODEL> | Plans. Never writes code. |
+| Implementation | `executor` | <EXECUTOR_MODEL> | Implements the plan literally. Full git autonomy. |
+| Research | `researcher` | <EXECUTOR_MODEL> | Read-only. SELECT-only DB. |
+
+Dispatch is the exception, not the default. Most tasks live in the Architect's hands.
+
+---
+
+## Stack
+
+- Code stack: <CODE_STACK>
+- Primary database: <PRIMARY_DB>
+- AI harness: Claude Code with MCP servers (see `.claude/settings.json`)
+- Local runtime: Docker Compose (same topology as production)
+
+---
+
+## Commits and pushes — operator-controlled autonomy
+
+**Allowed without asking:**
+- `git add` (specific files — never `-A` blindly)
+- `git commit -m "..."` with imperative subject + Co-Authored-By trailer
+- `git push origin main` for small logical commits
+- `git fetch`, `git pull --rebase`, branch creation
+- Editing `.claude/settings.json` and `.claude/hooks/`
+
+**Always denied without explicit OK:**
+- `git push --force` to main
+- `git reset --hard`
+- Bypassing hooks (`--no-verify`)
+- `rm -rf` outside the working tree
+- Anything that writes a secret to a committed file
+
+**Discipline:**
+- `git status` + `git diff --cached` before every commit
+- `git branch --show-current` before commits — verify you're on the right branch
+- Small logical commits — no bundling unrelated changes
+
+---
+
+## Database changes
+
+- **One-off data fix / test seed / cleanup**: run via the live-DB MCP against local only. No file produced.
+- **Permanent schema change**: numbered migration in `database/migrations/` (or wherever your project keeps them) AND run the same SQL via the MCP for live local sync. **Both, not one or the other.**
+- Don't write a `.sql` migration file just for a one-off UPDATE.
+- Don't speculative migrations without confirming with the operator.
+
+---
+
+## Working agreement
+
+- **Fix things forward.** Root cause, not workaround.
+- **Stop and re-plan on drift.** If a task goes sideways twice, STOP. Re-query the KG, re-read the touch-points, restate the plan to the operator.
+- **Test rigorously, then self-review.** Build green + smoke test + DB state check + UI exercise. Before declaring done: read the diff, ask "would a staff engineer approve this?"
+- **Commit style:** small, logical, imperative subject (`add X`, `fix Y`, `update Z`).
+- **Destructive ops** (delete files, force push, `reset --hard`): always ask first.
+
+---
+
+## When unsure, ask
+
+This repo is real software for real users. Anything ambiguous — especially data, finance, payments, customer info — stop and ask the operator. The 30-second pause beats a corrupted system.

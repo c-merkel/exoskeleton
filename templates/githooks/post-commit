@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Sentinel 4 — Knowledge-Graph Refresh (post-commit)
+#
+# Fires after every commit. If the commit touches mineable surfaces
+# (synced services, schema migrations, API definitions), background-runs the
+# KG miner so the next session opens already knowing what changed.
+#
+# Skipped during rebase / merge / cherry-pick (so reruns don't thrash the KG).
+# No-ops gracefully if the KG miner script doesn't exist yet.
+#
+# Override: <PROJECT_SLUG>_SKIP_KG_REFRESH=1 git commit ...
+
+set -euo pipefail
+
+if [ "${<PROJECT_SLUG>_SKIP_KG_REFRESH:-0}" = "1" ]; then
+  exit 0
+fi
+
+# Skip during rebase / merge / cherry-pick
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || echo "")
+if [ -n "$GIT_DIR" ]; then
+  if [ -d "$GIT_DIR/rebase-merge" ] || [ -d "$GIT_DIR/rebase-apply" ] || [ -f "$GIT_DIR/MERGE_HEAD" ] || [ -f "$GIT_DIR/CHERRY_PICK_HEAD" ]; then
+    exit 0
+  fi
+fi
+
+# Check the commit for mineable changes
+CHANGED=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+# Customize: which file patterns mean the KG should be refreshed?
+MINEABLE_PATTERNS=(
+  "schema/"
+  "migrations/"
+  "api/"
+  "models/"
+  "sync/"
+)
+
+NEEDS_REFRESH=0
+for f in $CHANGED; do
+  for pattern in "${MINEABLE_PATTERNS[@]}"; do
+    if [[ "$f" == *"$pattern"* ]]; then
+      NEEDS_REFRESH=1
+      break 2
+    fi
+  done
+done
+
+if [ "$NEEDS_REFRESH" = "0" ]; then
+  exit 0  # No mineable changes; nothing to refresh
+fi
+
+# Run the miner in the background (don't block the commit completion)
+MINER="$(git rev-parse --show-toplevel)/bin/refresh-kg.sh"
+
+if [ ! -x "$MINER" ]; then
+  # No miner installed yet — silent no-op
+  exit 0
+fi
+
+(bash "$MINER" --background >/dev/null 2>&1 &)
+disown 2>/dev/null || true
+
+exit 0

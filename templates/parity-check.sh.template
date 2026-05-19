@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# Parity Check — per-entity layer walker
+#
+# Called by .githooks/pre-commit with a list of staged synced files.
+# For each entity affected by those files, walks each layer and verifies
+# the field list matches.
+#
+# THIS IS A TEMPLATE. Copy to parity-check.sh, then customize the entity logic.
+# You will keep coming back to this script as your schema evolves. That's
+# expected — the script is the contract.
+
+set -euo pipefail
+
+# Map a staged file path to the entity it represents.
+# Customize for your project. Example:
+#
+#   app/models/customer.rb       -> customer
+#   migrations/20260518_add_customer_phone.sql -> customer
+#   admin/customer_form.html     -> customer
+#   mobile/lib/customer.swift    -> customer
+#
+file_to_entity() {
+  local f="$1"
+  case "$f" in
+    *customer*)  echo "customer" ;;
+    *user*)      echo "user" ;;
+    *order*)     echo "order" ;;
+    # ADD YOUR ENTITIES HERE
+    *)           echo "" ;;
+  esac
+}
+
+# Walk each layer for an entity and emit the list of fields.
+# Customize each function below for your project's layer storage.
+
+fields_in_database() {
+  local entity="$1"
+  # Example: parse the migration files for CREATE TABLE / ALTER TABLE
+  # Or query the live DB (if you set up a tool to dump the schema)
+  echo ""  # TODO: implement
+}
+
+fields_in_api() {
+  local entity="$1"
+  # Example: grep your serializers / API definitions
+  echo ""  # TODO: implement
+}
+
+fields_in_admin() {
+  local entity="$1"
+  # Example: grep your admin form definitions
+  echo ""  # TODO: implement
+}
+
+fields_in_mobile() {
+  local entity="$1"
+  # Example: grep your mobile schema or Codable structs
+  echo ""  # TODO: implement
+}
+
+fields_in_public() {
+  local entity="$1"
+  # Example: grep your public templates
+  echo ""  # TODO: implement
+}
+
+# Main check loop
+FAIL=0
+SEEN_ENTITIES=""
+for f in "$@"; do
+  entity=$(file_to_entity "$f")
+  if [ -z "$entity" ]; then
+    continue
+  fi
+
+  # Avoid double-checking
+  if [[ "$SEEN_ENTITIES" == *"|$entity|"* ]]; then
+    continue
+  fi
+  SEEN_ENTITIES="$SEEN_ENTITIES|$entity|"
+
+  # Collect fields from each layer
+  db_fields=$(fields_in_database "$entity" | sort -u)
+  api_fields=$(fields_in_api "$entity" | sort -u)
+  admin_fields=$(fields_in_admin "$entity" | sort -u)
+  mobile_fields=$(fields_in_mobile "$entity" | sort -u)
+  public_fields=$(fields_in_public "$entity" | sort -u)
+
+  # Diff each pair. If any disagreement: fail.
+  # (Customize: some fields are LEGITIMATELY only on some layers. Mark those
+  #  with explicit allow-lists.)
+
+  # Example: compare DB vs API
+  missing_in_api=$(comm -23 <(echo "$db_fields") <(echo "$api_fields"))
+  if [ -n "$missing_in_api" ]; then
+    echo "🛑 entity '$entity': in DB but missing in API:" >&2
+    echo "$missing_in_api" | sed 's/^/    /' >&2
+    FAIL=1
+  fi
+
+  # ... add more pairs ...
+done
+
+if [ "$FAIL" = "1" ]; then
+  echo "" >&2
+  echo "Parity check FAILED. Either:" >&2
+  echo "  1. Add the missing field to the layer that's missing it, or" >&2
+  echo "  2. Mark the field as legitimately layer-specific (edit the allow-list above), or" >&2
+  echo "  3. Skip this commit (rare): <PROJECT_SLUG>_SKIP_PARITY=1 git commit ..." >&2
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,73 @@
+{
+  "_comment": "Two Suits settings — replace <PROJECT_SLUG> with your project's kebab-case slug.",
+
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(bash:*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "MultiEdit(*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(sudo:*)"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/pre-change-protocol.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__execute_sql",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/schema-verify.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreToolUse_kg_query": [
+      {
+        "matcher": "mcp__.*__kg_query",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/kg-staleness-check.sh",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  },
+
+  "env": {
+    "PROJECT_SLUG": "<PROJECT_SLUG>"
+  }
+}

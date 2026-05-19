@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Sentinel 3 — Parity Check (pre-commit gate)
+#
+# For each staged file that touches a synced surface, walks each layer of the
+# platform and refuses the commit if any two layers disagree about a field.
+#
+# Activate: git config core.hooksPath .githooks
+#
+# Override (rare and risky): <PROJECT_SLUG>_SKIP_PARITY=1 git commit ...
+
+set -euo pipefail
+
+if [ "${<PROJECT_SLUG>_SKIP_PARITY:-0}" = "1" ]; then
+  exit 0
+fi
+
+# Collect staged files
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED" ]; then
+  exit 0  # Nothing staged
+fi
+
+# Define which file patterns trigger a parity check — customize for your project.
+# Generally any file that's part of a synced layer: schema migrations, API serializers,
+# admin views, mobile schema, public templates that render shared data.
+SYNCED_PATTERNS=(
+  "migrations/"
+  "api/"
+  "admin/"
+  "mobile/"
+  "schema/"
+)
+
+# Check whether any staged file matches a synced pattern
+TRIGGERED=0
+TOUCHED_FILES=""
+while IFS= read -r f; do
+  for pattern in "${SYNCED_PATTERNS[@]}"; do
+    if [[ "$f" == *"$pattern"* ]]; then
+      TRIGGERED=1
+      TOUCHED_FILES="$TOUCHED_FILES $f"
+      break
+    fi
+  done
+done <<< "$STAGED"
+
+if [ "$TRIGGERED" = "0" ]; then
+  exit 0  # No synced files touched
+fi
+
+# Invoke the parity check script (the user customizes parity-check.sh for their entities)
+PARITY_SCRIPT="$(git rev-parse --show-toplevel)/parity-check.sh"
+
+if [ ! -x "$PARITY_SCRIPT" ]; then
+  echo "⚠️  Parity Check: parity-check.sh not yet installed (or not executable)." >&2
+  echo "    Synced files touched in this commit:$TOUCHED_FILES" >&2
+  echo "    Customize parity-check.sh.template, copy to parity-check.sh, chmod +x." >&2
+  echo "    (Allowing commit through this time — but tighten this before going to production.)" >&2
+  exit 0
+fi
+
+# Run the user's parity check
+if ! bash "$PARITY_SCRIPT" $TOUCHED_FILES; then
+  echo "🛑 Parity Check: layers disagree on at least one field." >&2
+  echo "    Touched: $TOUCHED_FILES" >&2
+  echo "    Resolve the parity issue or override with <PROJECT_SLUG>_SKIP_PARITY=1 (and document why)." >&2
+  exit 1
+fi
+
+exit 0

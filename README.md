@@ -1,0 +1,106 @@
+# exoskeleton
+
+A bundle of five Claude Code skills that bootstrap the **Operator-Architect multi-agent stack** from the [*Two Suits* builder's guide](https://christianmerkel.com/two-suits/builders-guide) into any project, local-first, in about ten minutes.
+
+The article *Two Suits* tells the story. **The exoskeleton is what does the work.** This is the exoskeleton.
+
+## What's in the bundle
+
+Six skills. Each invocable standalone. One orchestrator runs them in sequence.
+
+```
+.claude/skills/exoskeleton/
+├── README.md                          ← you are here
+├── exoskeleton-install/               ← orchestrator (run this first)
+├── exoskeleton-bootstrap/             ← Stage 0 — fresh-laptop setup (Docker, gh, MCP servers, GitHub auth)
+├── exoskeleton-local/                 ← Docker compose + project-specific MCP wiring
+├── exoskeleton-manual/                ← generates CLAUDE.md, agents, slash commands
+├── exoskeleton-guards/                ← installs the four non-AI guards + parity gate
+└── exoskeleton-deploy/                ← VPS deployment wizard (after local is green)
+```
+
+The orchestrator probes the machine first. If Docker, `gh`, SSH key, MCP servers are all in place it skips Stage 0 and starts with project setup. If anything is missing, it invokes Stage 0 to install + configure each piece before touching the project.
+
+## What the exoskeleton produces
+
+When the orchestrator finishes, you have:
+
+- A `docker-compose.yml` that mirrors a production topology
+- A `start.sh` one-command bootstrap
+- A `CLAUDE.md` operating manual filled in with your project's specifics
+- A `.claude/settings.json` wired to four hooks and the right permissions
+- Four guard scripts (`.claude/hooks/` + `.githooks/`)
+- Three agent definitions (`.claude/agents/`)
+- Three slash commands (`.claude/commands/`)
+- A `parity-check.sh.template` you customize for your layers
+- A `/verify-stack` slash command that confirms it all works
+- (optional) a VPS deployment topology in `bin/vps/` if you ran `/exoskeleton-deploy`
+
+## How to install the exoskeleton into your project
+
+```bash
+# Clone or copy the bundle into your repo
+cp -r path/to/exoskeleton .claude/skills/
+
+# Open the project in Claude Code
+claude
+
+# Invoke the orchestrator
+> /exoskeleton-install
+```
+
+## Local-first by design
+
+The orchestrator gets a working local environment running **before** asking about VPS credentials. You can stop after `/exoskeleton-local` and never deploy to a server — the local stack stands on its own. The `/exoskeleton-deploy` skill is opt-in, runs last, and asks for explicit credentials.
+
+## Invoking sub-skills individually
+
+You don't have to run the orchestrator. Each sub-skill is a slash command:
+
+```
+/exoskeleton-bootstrap     # Stage 0 — fresh-laptop setup (Docker, gh, MCP, GitHub auth)
+/exoskeleton-local         # local Docker + project-specific MCP wiring
+/exoskeleton-manual        # generates the operating manual
+/exoskeleton-guards        # installs the four guards
+/exoskeleton-deploy        # VPS deployment wizard
+```
+
+Useful when re-running a single stage after a config change, or when you already have parts of the stack and only need to fill in one piece.
+
+## Each station offers three modes
+
+The builder's guide is organized into ten stations. At every station, you can:
+
+1. **Run the skill** — invoke `/exoskeleton-<station>` and the bundle does it for you. You read along to learn what happened.
+2. **Use a prompt** — copy the prompt block, paste it into your own Claude (or any AI), and let your AI do the work with your adjustments.
+3. **Do it manually** — type every command and write every file yourself.
+
+All three end at the same place. The skill mode is the fastest; the manual mode is the most instructive. Pick the one that fits your moment.
+
+## Prerequisites
+
+- Claude Code installed (`claude.com/claude-code`)
+- Docker Desktop (or compatible) for the local stack
+- `git` configured with the project repo
+- About 10 minutes for the local install, another 15–20 for VPS
+
+## Platform support
+
+The four guards and the git hooks are written in `bash` + `python3`. Specifically:
+
+- **macOS** — fully supported. This is the platform the bundle was built and tested on.
+- **Linux** — fully supported. Templates use the GNU-flavored utilities (`sed -i 's/.../.../'`, `grep -P`, etc.) that ship with every mainstream distro.
+- **Windows (native PowerShell/cmd)** — not supported. The hooks are bash scripts, and git hooks invoked via `core.hooksPath` don't translate cleanly to native Windows shells.
+- **Windows via WSL2** — fully supported. Claude Code on Windows is documented to run inside WSL2 anyway; inside that environment the bundle behaves exactly like Linux. Docker Desktop bridges to the WSL2 backend transparently.
+
+If you're on Windows and not already using WSL2, install it first (`wsl --install`) and run Claude Code from the WSL2 shell. The exoskeleton bundle has no native-Windows codepath and there is no plan to add one — WSL2 is the supported answer.
+
+## Companion reading
+
+- **Story:** [*Two Suits*](https://christianmerkel.com/two-suits)
+- **Graphic novel:** [*Two Suits — The Graphic Novel*](https://christianmerkel.com/two-suits/comic)
+- **Builder's guide:** [*Two Suits — Builder's Guide*](https://christianmerkel.com/two-suits/builders-guide)
+
+---
+
+Stack-agnostic. The bundle works for any language, any framework, any database — you provide the stack-specific bits in the prompts. The patterns ship in the templates; the implementation is yours.
