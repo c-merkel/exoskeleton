@@ -38,6 +38,8 @@ When the orchestrator finishes, you have:
 
 ## How to install the exoskeleton into your project
 
+### Claude Code
+
 ```bash
 # Clone or copy the bundle into your repo
 cp -r path/to/exoskeleton .claude/skills/
@@ -48,6 +50,27 @@ claude
 # Invoke the orchestrator
 > /exoskeleton-install
 ```
+
+### Codex CLI (OpenAI)
+
+The Agent Skills format became an open standard in late 2025 — Codex CLI loads skills from the same `SKILL.md` files. Install path:
+
+```bash
+# Clone or copy the bundle into your repo
+cp -r path/to/exoskeleton .codex/skills/
+
+# Open the project in Codex CLI
+codex
+
+# Invoke the orchestrator
+> /exoskeleton-install
+```
+
+If Codex stores skills in a different default path on your machine, check `codex skills path` (or the equivalent for your version) and copy there instead. The skill behavior is identical across both AIs — same prompts, same outputs.
+
+### Either AI
+
+The bundle is dual-target: the `SKILL.md` files contain no Claude-Code-specific syntax. The hooks under `templates/hooks/` are bash + python and OS-portable. The only AI-specific surface is the sub-agent definitions under `templates/agents/`, which assume Claude's `Task` tool naming — Codex users may need to swap `Task → spawn_agent` (or the Codex equivalent) when invoking them.
 
 ## Local-first by design
 
