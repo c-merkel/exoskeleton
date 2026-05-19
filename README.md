@@ -4,6 +4,8 @@ A bundle of six Claude Code skills that bootstrap the **Operator-Architect multi
 
 The article *Two Suits* tells the story. **The exoskeleton is what does the work.** This is the exoskeleton.
 
+![The Two Suits — the cinematic universe the exoskeleton comes from](assets/hero.png)
+
 ## What's in the bundle
 
 Six skills. Each invocable standalone. One orchestrator runs them in sequence.
@@ -47,6 +49,16 @@ When the orchestrator finishes, you have:
 - A `parity-check.sh.template` you customize for your layers
 - A `/verify-stack` slash command that confirms it all works
 - (optional) a VPS deployment topology in `bin/vps/` if you ran `/exoskeleton-deploy`
+
+![The operator-architect stack the exoskeleton installs](assets/architecture.png)
+
+## Built with the exoskeleton
+
+The bundle is the generalized form of a stack that already runs a real business — **Fefi Magical Moments**: a public booking site, a PHP/MariaDB admin backend, and a native iOS app, all built and operated with the operator-architect stack the exoskeleton scaffolds.
+
+![Fefi Magical Moments — public site, web admin, and native iOS app](assets/built-with-it.png)
+
+Not a demo — it takes real bookings, signs real waivers, processes real payments. The exoskeleton packages that same stack so you can put it on your own project.
 
 ## How to install the exoskeleton into your project
 
