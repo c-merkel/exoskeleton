@@ -19,7 +19,19 @@ Six skills. Each invocable standalone. One orchestrator runs them in sequence.
 └── exoskeleton-deploy/                ← VPS deployment wizard (after local is green)
 ```
 
-The orchestrator probes the machine first. If Docker, `gh`, SSH key, MCP servers are all in place it skips Stage 0 and starts with project setup. If anything is missing, it invokes Stage 0 to install + configure each piece before touching the project.
+The orchestrator probes the machine first — a **three-state check** on every prerequisite and every MCP server:
+
+- **✓** — present and matches the canonical setup
+- **~** — present but *drifted*: an MCP installed with a stale or non-canonical command
+- **✗** — missing
+
+The probe state decides the handoff:
+
+- **All ✓** — skip Stage 0, go straight to project setup.
+- **Any ✗** — run Stage 0 (`exoskeleton-bootstrap`) to install the missing pieces.
+- **Any ~** — run Stage 0 in `--reconcile` mode (Phase 5b) to fix the drift, asking before changing each server and leaving unrelated MCPs untouched.
+
+A name-only probe would miss drift entirely — a stale Serena reads as "installed" and quietly breaks the protocol. The three-state probe catches it.
 
 ## What the exoskeleton produces
 
@@ -72,6 +84,15 @@ If Codex stores skills in a different default path on your machine, check `codex
 
 The bundle is dual-target: the `SKILL.md` files contain no Claude-Code-specific syntax. The hooks under `templates/hooks/` are bash + python and OS-portable. The only AI-specific surface is the sub-agent definitions under `templates/agents/`, which assume Claude's `Task` tool naming — Codex users may need to swap `Task → spawn_agent` (or the Codex equivalent) when invoking them.
 
+## The first thing it asks: your pace
+
+Before any probe or command, the orchestrator asks one question — have you set up a development environment before? Your answer sets the pace for the entire run:
+
+- **Concierge Mode** — first-timers. One command at a time, a plain-English preamble before each, every line of terminal output translated, a small celebration at each win. Built for the creative-side-of-the-business user who has never opened a terminal.
+- **Express Mode** — experienced users. One message per phase, all commands at once, no preamble. Pace, not silence — you still get a fix recommendation when something fails.
+
+Say "slow down" or "go faster" at any point to switch. The chosen pace carries into every sub-skill the orchestrator dispatches.
+
 ## Local-first by design
 
 The orchestrator gets a working local environment running **before** asking about VPS credentials. You can stop after `/exoskeleton-local` and never deploy to a server — the local stack stands on its own. The `/exoskeleton-deploy` skill is opt-in, runs last, and asks for explicit credentials.
@@ -89,6 +110,11 @@ You don't have to run the orchestrator. Each sub-skill is a slash command:
 ```
 
 Useful when re-running a single stage after a config change, or when you already have parts of the stack and only need to fill in one piece.
+
+`exoskeleton-bootstrap` also takes two flags for the upgrade path:
+
+- `/exoskeleton-bootstrap --reconcile` — skip straight to MCP reconciliation (Phase 5b). Diffs your installed MCP servers against the canonical set, asks before fixing each drifted one, and preserves servers you use for other projects. This is what the orchestrator's probe invokes when it sees a `~` row.
+- `/exoskeleton-bootstrap --clean` — remove the canonical MCP servers and reinstall them from scratch. Destructive; use only when you explicitly want a clean slate.
 
 ## Each station offers three modes
 
