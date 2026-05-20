@@ -1,6 +1,6 @@
 # exoskeleton
 
-A bundle of seven Claude Code skills that bootstrap the **Operator-Architect multi-agent stack** from the [*Two Suits* builder's guide](https://christianmerkel.com/two-suits/builders-guide) into any project, local-first, in about ten minutes.
+A bundle of eight Claude Code skills that bootstrap the **Operator-Architect multi-agent stack** from the [*Two Suits* builder's guide](https://christianmerkel.com/two-suits/builders-guide) into any project, local-first, in about ten minutes — and a continuous upstream channel for consumer improvements to flow back into the public bundle.
 
 The article *Two Suits* tells the story. **The exoskeleton is what does the work.** This is the exoskeleton.
 
@@ -8,7 +8,7 @@ The article *Two Suits* tells the story. **The exoskeleton is what does the work
 
 ## What's in the bundle
 
-Seven skills. Each invocable standalone. One orchestrator runs the core six in sequence; the seventh is a conditional second-stage installer.
+Eight skills. Each invocable standalone. One orchestrator runs the core six in sequence; the others are conditional installers + the upstream-promotion channel.
 
 ```
 .claude/skills/exoskeleton/
@@ -19,8 +19,11 @@ Seven skills. Each invocable standalone. One orchestrator runs the core six in s
 ├── exoskeleton-manual/                ← generates CLAUDE.md, agents, slash commands
 ├── exoskeleton-guards/                ← installs four non-AI guards + five-layer autonomic sensing harness
 ├── exoskeleton-memory/                ← second-stage installer for custom memory backends (BYO)
-└── exoskeleton-deploy/                ← VPS deployment wizard (after local is green)
+├── exoskeleton-deploy/                ← VPS deployment wizard (after local is green)
+└── exoskeleton-promote/               ← upstream channel — periodic consumer→bundle improvement lift
 ```
+
+The promote skill closes the loop: improvements you make in your consumer project (a tighter detector, a new entity-shape pattern, a better correction-pattern regex) get inventoried, classified, and lifted back to the public bundle as a transactional PR. The exoskeleton learns from every consumer that uses it.
 
 ### Two layers of protection
 
@@ -133,6 +136,7 @@ You don't have to run the orchestrator. Each sub-skill is a slash command:
 /exoskeleton-guards        # installs the four Sentinels + the autonomic sensing harness
 /exoskeleton-memory        # second-stage installer when you picked "bring your own" memory backend
 /exoskeleton-deploy        # VPS deployment wizard
+/exoskeleton-promote       # periodic upstream lift — consumer improvements → public bundle
 ```
 
 Useful when re-running a single stage after a config change, or when you already have parts of the stack and only need to fill in one piece.
