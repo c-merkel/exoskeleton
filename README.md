@@ -65,13 +65,13 @@ Not a demo — it takes real bookings, signs real waivers, processes real paymen
 ### Claude Code
 
 ```bash
-# Clone or copy the bundle into your repo
-cp -r path/to/exoskeleton .claude/skills/
+# From your project's root directory, clone the bundle into the skills folder:
+git clone https://github.com/c-merkel/exoskeleton.git .claude/skills/exoskeleton
 
-# Open the project in Claude Code
+# Open the project in Claude Code:
 claude
 
-# Invoke the orchestrator
+# Invoke the orchestrator — it walks the whole install for you, station by station:
 > /exoskeleton-install
 ```
 
@@ -80,17 +80,17 @@ claude
 The Agent Skills format became an open standard in late 2025 — Codex CLI loads skills from the same `SKILL.md` files. Install path:
 
 ```bash
-# Clone or copy the bundle into your repo
-cp -r path/to/exoskeleton .codex/skills/
+# From your project's root directory, clone the bundle into the skills folder:
+git clone https://github.com/c-merkel/exoskeleton.git .codex/skills/exoskeleton
 
-# Open the project in Codex CLI
+# Open the project in Codex CLI:
 codex
 
-# Invoke the orchestrator
+# Invoke the orchestrator — it walks the whole install for you, station by station:
 > /exoskeleton-install
 ```
 
-If Codex stores skills in a different default path on your machine, check `codex skills path` (or the equivalent for your version) and copy there instead. The skill behavior is identical across both AIs — same prompts, same outputs.
+If Codex stores skills in a different default path on your machine, check `codex skills path` (or the equivalent for your version) and clone there instead. The skill behavior is identical across both AIs — same prompts, same outputs.
 
 ### Either AI
 
