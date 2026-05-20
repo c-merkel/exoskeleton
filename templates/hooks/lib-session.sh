@@ -47,3 +47,23 @@ except Exception:
   fi
   echo "$sid"
 }
+
+# Append <value> to <file> with an ISO-8601 UTC timestamp prefix. Creates the
+# parent dir on first use. Silent on error (fail-soft). Useful for the
+# Sentinel hooks that need an append-only session log (e.g. kg-queried,
+# inspected-table-X markers, custom audit trails).
+session_log_append() {
+  local file="$1"
+  local value="$2"
+  mkdir -p "$(dirname "$file")" 2>/dev/null || true
+  printf '%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$value" >> "$file" 2>/dev/null || true
+}
+
+# Silently grep <pattern> in <file>. Returns 0 if found, non-zero otherwise.
+# No output on stdout/stderr. Useful for the gate-on-marker pattern.
+session_log_grep() {
+  local file="$1"
+  local pattern="$2"
+  [ -f "$file" ] || return 1
+  grep -qE "$pattern" "$file" 2>/dev/null
+}

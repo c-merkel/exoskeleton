@@ -185,27 +185,47 @@ def build_entity_shape(entity: str, cfg: dict) -> dict:
         if not isinstance(layer, dict):
             continue
         name = layer.get("name")
-        glob_pat = layer.get("glob")
-        if not name or not glob_pat:
+        if not name:
             continue
-        expanded = _expand(glob_pat, Entity=Entity, snake=snake)
-        # Special placeholder: <FeatureFolder>
-        if "<FeatureFolder>" in expanded:
-            feat = folder_hints.get(entity)
-            if not feat:
-                continue
-            expanded = expanded.replace("<FeatureFolder>", feat)
-        absolute = expanded if expanded.startswith("/") else str(REPO_ROOT / expanded)
-        matches = sorted(glob.glob(absolute, recursive=True))
-        rel_matches = []
-        for m in matches:
-            try:
-                rel = str(Path(m).relative_to(REPO_ROOT))
-            except ValueError:
-                continue
-            if Path(m).is_dir():
-                rel += "/"
-            rel_matches.append(rel)
+        # Support either `glob: <one>` or `globs: [list]`. Multi-glob lets a
+        # single layer try plural-then-singular admin views, alt iOS folders,
+        # etc. — the first glob that matches wins (subsequent ones are tried
+        # only if the prior produced no matches).
+        patterns: list[str] = []
+        if isinstance(layer.get("globs"), list):
+            patterns = [p for p in layer["globs"] if isinstance(p, str)]
+        elif isinstance(layer.get("glob"), str):
+            patterns = [layer["glob"]]
+        if not patterns:
+            continue
+
+        rel_matches: list[str] = []
+        for glob_pat in patterns:
+            expanded = _expand(glob_pat, Entity=Entity, snake=snake)
+            # Special placeholder: <FeatureFolder>
+            if "<FeatureFolder>" in expanded:
+                feat = folder_hints.get(entity)
+                if not feat:
+                    continue
+                expanded = expanded.replace("<FeatureFolder>", feat)
+            absolute = expanded if expanded.startswith("/") else str(REPO_ROOT / expanded)
+            matches = sorted(glob.glob(absolute, recursive=True))
+            for m in matches:
+                try:
+                    rel = str(Path(m).relative_to(REPO_ROOT))
+                except ValueError:
+                    continue
+                if Path(m).is_dir():
+                    rel += "/"
+                rel_matches.append(rel)
+            # If this pattern produced any matches, stop trying alternates
+            # (the candidates are ordered most-specific to least).
+            if rel_matches:
+                break
+
+        # Dedup while preserving order.
+        seen = set()
+        rel_matches = [x for x in rel_matches if not (x in seen or seen.add(x))]
         if rel_matches:
             shape["parity_layers"][name] = rel_matches
 

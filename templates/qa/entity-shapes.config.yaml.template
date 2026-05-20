@@ -35,7 +35,14 @@
 #   - name: controller
 #     glob: website/app/Controllers/<Entity>Controller.php
 #   - name: admin_view
-#     glob: website/app/Views/admin/<snake>s.php
+#     # Multi-glob: tries each in order, the first that matches wins.
+#     # Lets you handle pluralization + kebab/snake variants without
+#     # writing N separate layer entries.
+#     globs:
+#       - website/app/Views/admin/<snake>s.php       # customers.php
+#       - website/app/Views/admin/<snake>.php        # singular fallback
+#       - website/app/Views/admin/<kebab>s/          # magic-hours/ (dir)
+#       - website/app/Views/admin/<kebab>/
 #   - name: migrations
 #     glob: website/database/init/*<snake>*.sql
 #   - name: sync_store
