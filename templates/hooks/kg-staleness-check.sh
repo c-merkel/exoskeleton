@@ -31,3 +31,4 @@ if [ "$UNCOMMITTED_COUNT" -ge 5 ]; then
 fi
 
 exit 0
+

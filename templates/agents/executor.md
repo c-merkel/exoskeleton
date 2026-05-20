@@ -55,3 +55,4 @@ Beyond the standard escalation rules in CLAUDE.md, also ping the operator when:
 - The plan would commit a secret to a file (refuse, ask)
 - You're about to deploy to production
 - A Sentinel refused and the Architect is suggesting to override
+

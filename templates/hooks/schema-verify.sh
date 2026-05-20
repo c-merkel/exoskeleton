@@ -59,3 +59,4 @@ echo "🛑 Schema-Verify: table '$TARGET_TABLE' has not been inspected this sess
 echo "    Invoke get_table_schema('$TARGET_TABLE') first." >&2
 echo "    To override (rare and risky): set <PROJECT_SLUG>_SKIP_SCHEMA_CHECK=1." >&2
 exit 2  # Block the call
+

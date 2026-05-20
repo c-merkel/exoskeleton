@@ -119,3 +119,4 @@ When this skill completes, tell the user:
 > Local stack is up at http://localhost:8080.
 >
 > Next: invoke `/exoskeleton-manual` and `/exoskeleton-guards` (the orchestrator will do this automatically). When all four hooks are installed, run `/verify-stack` to confirm everything's green.
+

@@ -78,3 +78,4 @@ ChrisRule:ParityFailIsShipBlocker proposed
 The rule will surface automatically in future sessions where the
 parity check runs. The bug is now vaccinated.
 ```
+

@@ -170,3 +170,4 @@ The full Two Suits universe lives at [**christianmerkel.com/two-suits**](https:/
 ---
 
 Stack-agnostic. The bundle works for any language, any framework, any database — you provide the stack-specific bits in the prompts. The patterns ship in the templates; the implementation is yours.
+

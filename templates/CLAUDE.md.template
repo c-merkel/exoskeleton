@@ -142,3 +142,4 @@ Dispatch is the exception, not the default. Most tasks live in the Architect's h
 ## When unsure, ask
 
 This repo is real software for real users. Anything ambiguous — especially data, finance, payments, customer info — stop and ask the operator. The 30-second pause beats a corrupted system.
+

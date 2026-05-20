@@ -168,3 +168,4 @@ When this skill completes:
 > The stack is now mirrored between your laptop and the production server. The hooks, the agents, the Sentinels, the operating manual — they all work the same in both places.
 >
 > Push to production when you're ready: `git push && bin/vps/deploy.sh`
+

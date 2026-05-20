@@ -69,3 +69,4 @@ if ! bash "$PARITY_SCRIPT" $TOUCHED_FILES; then
 fi
 
 exit 0
+

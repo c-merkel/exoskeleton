@@ -46,3 +46,4 @@ SUGGESTED NEXT STEP (optional)
 2. **Read tool is OK for non-indexed files** (markdown, config). For indexed code, use the code intel server (Serena's find_symbol, get_symbol_source, etc.).
 3. **Word cap is 400 by default.** If you need more space, ask the Architect for a higher cap with a one-line justification.
 4. **No web fetches to unknown URLs.** Stick to the canonical docs (claude.com, modelcontextprotocol.io, your project's known links). Anything unfamiliar — ask first.
+

@@ -196,3 +196,4 @@ Tell the user where to go next:
 - Read the [builder's guide](https://christianmerkel.com/two-suits/builders-guide) for the architectural reasoning behind each piece
 - Iterate the parity-check script as their schema stabilizes
 - Invoke `/learn` (one of the installed slash commands) when a bug takes more than 30 minutes to find — the skill converts the bug into a KnownBug entity and prompts the user to write the corresponding rule
+

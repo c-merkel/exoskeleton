@@ -44,3 +44,4 @@ Once the operator approves, dispatch the `executor` sub-agent with the approved 
 - **Executor never re-plans.** It executes the approved plan literally.
 - **Operator signs off in between.** No auto-progression from Phase 1 to Phase 3.
 - **If the change is trivial** (typo fix, single-line update), skip the protocol — just do it.
+

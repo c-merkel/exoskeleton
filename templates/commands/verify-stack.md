@@ -98,3 +98,4 @@ After running all 8 checks, output a status summary:
 ```
 
 Top-line summary: total green / total · one-line next action if any red.
+

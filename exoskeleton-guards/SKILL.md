@@ -115,3 +115,4 @@ When this skill completes:
 > The Parity Check template ships at `parity-check.sh.template`. You'll customize it as your schema stabilizes — the template includes a worked example for one entity, commented out, that you adapt for each of your layers.
 >
 > Next: invoke `/verify-stack` to confirm the full health check passes.
+
