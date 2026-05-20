@@ -158,9 +158,13 @@ If you're on Windows and not already using WSL2, install it first (`wsl --instal
 
 ## Companion reading
 
-- **Story:** [*Two Suits*](https://christianmerkel.com/two-suits)
-- **Graphic novel:** [*Two Suits — The Graphic Novel*](https://christianmerkel.com/two-suits/comic)
-- **Builder's guide:** [*Two Suits — Builder's Guide*](https://christianmerkel.com/two-suits/builders-guide)
+The full Two Suits universe lives at [**christianmerkel.com/two-suits**](https://christianmerkel.com/two-suits) — the **Information Hub** that links to every piece below in one place.
+
+- **Two Suits — Information Hub:** [christianmerkel.com/two-suits](https://christianmerkel.com/two-suits) — the landing page; pick your door from there.
+- **Start Here:** [the friendly walkthrough](https://christianmerkel.com/two-suits/start-here) — fit your own exoskeleton in 11 stages, about 30 minutes, no jargon.
+- **The Story:** [*Two Suits*](https://christianmerkel.com/two-suits/story) — first-person narrative of the build.
+- **The Builder's Guide:** [*Two Suits — Builder's Guide*](https://christianmerkel.com/two-suits/builders-guide) — the architecture as a map; 11 stations, 3 modes each.
+- **The Graphic Novel:** [*Two Suits — The Graphic Novel*](https://christianmerkel.com/two-suits/comic) — the painterly cinematic companion.
 
 ---
 
