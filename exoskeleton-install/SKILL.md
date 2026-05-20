@@ -144,18 +144,26 @@ These can run in parallel (no shared files):
 
 ### Step 6 — Verify
 
-Invoke `/verify-stack` (one of the slash commands installed in Step 5). It runs an 8-check health pass:
+Invoke `/verify-stack` (one of the slash commands installed in Step 5). It runs a 12-check health pass:
 
 1. Docker stack starts cleanly
 2. Live preview reachable on the local URL
 3. CLAUDE.md exists and is non-trivial
 4. Four Sentinel scripts exist and pass `bash -n` syntax check
-5. Pre-commit hook is wired (`core.hooksPath`)
-6. Agent definitions parse as valid markdown
-7. Slash commands are registered
-8. MCP servers respond to a status check
+5. Five autonomic-layer hook scripts exist and pass `bash -n` syntax check (ambient-impact, recall-topic-area, self-stop-watchdog, learn-from-correction, lib-session + lib-memory libs sourceable)
+6. `qa/lib/entity_shapes.py` is importable (`python3 -c 'from qa.lib.entity_shapes import resolve_entity_for_path'`)
+7. `qa/check-shape-coverage.py` runs against an empty stdin without error
+8. `qa/mine-entity-shapes.py` runs (with no config → produces dormant shapes file)
+9. Pre-commit hook is wired (`core.hooksPath`)
+10. Agent definitions parse as valid markdown
+11. Slash commands are registered
+12. MCP servers respond to a status check (including MemPalace if `<PROJECT_SLUG>_MEMORY_BACKEND=mempalace`)
 
 Report green/yellow/red with one specific next action per failure.
+
+### Step 6.5 — Memory backend dispatch (conditional)
+
+If the operator chose `custom` for memory backend in the guards step, dispatch `/exoskeleton-memory` here as the second-stage installer. That skill walks them through wiring `qa/.memory-custom.sh` with their preferred memory provider. Skip this step for `mempalace` or `file`.
 
 ## VPS deployment is separate
 

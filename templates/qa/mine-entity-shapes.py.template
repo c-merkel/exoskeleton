@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""Mine entity shape templates → qa/entity-shapes.json.
+
+Reads qa/entity-shapes.config.yaml to learn YOUR project's conventions
+(which file paths anchor an entity, which layers exist, what naming pattern
+maps a file path back to an entity). Globs the filesystem. Mines git
+co-change. Writes a deterministic JSON the autonomic-layer hooks consume.
+
+Run after editing the config, after adding a new entity, or after a major
+refactor that moves canonical files.
+
+Usage:
+  python3 qa/mine-entity-shapes.py            # writes qa/entity-shapes.json
+  python3 qa/mine-entity-shapes.py --dry-run  # prints to stdout
+  python3 qa/mine-entity-shapes.py --entity <Name>   # single-entity (debug)
+
+Output schema (entity-shapes.json):
+  {
+    "generated_by": "qa/mine-entity-shapes.py",
+    "generated_at": "...",
+    "entity_count": N,
+    "entities": {
+      "<snake>": {
+        "display_name": "<DisplayName>",
+        "snake": "<snake>",
+        "parent": "<ParentDisplayName>" | null,
+        "parity_layers": { "<layer_name>": ["path1", "path2/"] },
+        "cochange_frequent": { "path": 0.42 }
+      }
+    }
+  }
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import json
+import re
+import subprocess
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+CONFIG = REPO_ROOT / "qa" / "entity-shapes.config.yaml"
+OUTPUT = REPO_ROOT / "qa" / "entity-shapes.json"
+
+CO_CHANGE_WINDOW = 200
+CO_CHANGE_THRESHOLD = 0.30
+
+
+def _camel_to_snake(name: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+
+def _snake_to_kebab(name: str) -> str:
+    return name.replace("_", "-")
+
+
+def _load_simple_yaml(path: Path) -> dict:
+    """Minimal YAML parser — handles the config schema (see template)."""
+    if not path.exists():
+        print(f"[mine-entity-shapes] config not found: {path}", file=sys.stderr)
+        print("    Copy qa/entity-shapes.config.yaml.template → qa/entity-shapes.config.yaml", file=sys.stderr)
+        print("    and customize for your project. Empty config produces no entities.", file=sys.stderr)
+        return {}
+    out: dict = {}
+    stack = [(0, out)]
+    cur_list_key = None
+    cur_list_indent = -1
+    for raw in path.read_text().splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip())
+        stripped = raw.lstrip()
+        while stack and indent < stack[-1][0]:
+            stack.pop()
+            if cur_list_indent >= 0 and indent <= cur_list_indent:
+                cur_list_key = None
+                cur_list_indent = -1
+        if stripped.startswith("- "):
+            val = stripped[2:].strip()
+            if cur_list_key is None:
+                continue
+            parent = stack[-1][1]
+            target = parent.get(cur_list_key)
+            if isinstance(target, dict) and not target:
+                # promote to list
+                parent[cur_list_key] = [val]
+            elif isinstance(target, list):
+                target.append(val)
+            else:
+                parent[cur_list_key] = [val]
+            continue
+        if ":" in stripped:
+            key, _, val = stripped.partition(":")
+            key = key.strip()
+            val = val.strip()
+            parent = stack[-1][1]
+            if val == "":
+                parent[key] = {}
+                stack.append((indent + 2, parent[key]))
+                cur_list_key = key
+                cur_list_indent = indent
+            else:
+                if val.startswith("[") and val.endswith("]"):
+                    items = [v.strip().strip("'\"") for v in val[1:-1].split(",") if v.strip()]
+                    parent[key] = items
+                elif val in ("true", "false"):
+                    parent[key] = (val == "true")
+                else:
+                    parent[key] = val.strip("'\"")
+                cur_list_key = key
+                cur_list_indent = indent
+    return out
+
+
+def _expand(pattern: str, *, Entity: str, snake: str) -> str:
+    """Expand placeholders in a glob pattern."""
+    return (
+        pattern
+        .replace("<Entity>", Entity)
+        .replace("<snake>", snake)
+        .replace("<kebab>", _snake_to_kebab(snake))
+        .replace("<entity>", Entity.lower())
+    )
+
+
+def discover_entities(cfg: dict) -> list[str]:
+    anchor_glob = cfg.get("anchor_glob") or ""
+    anchor_regex = cfg.get("anchor_name_regex") or ""
+    exclude = set(cfg.get("anchor_exclude") or [])
+    if not anchor_glob or not anchor_regex:
+        return []
+    paths = sorted(glob.glob(str(REPO_ROOT / anchor_glob), recursive=True))
+    pat = re.compile(anchor_regex)
+    out = []
+    for p in paths:
+        base = Path(p).name
+        m = pat.match(base)
+        if m and m.group("name") not in exclude:
+            out.append(m.group("name"))
+    return out
+
+
+def mine_cochange(anchor_path: str) -> dict[str, float]:
+    try:
+        out = subprocess.check_output(
+            ["git", "-C", str(REPO_ROOT), "log", f"-n{CO_CHANGE_WINDOW}",
+             "--name-only", "--pretty=format:---COMMIT---", "--", anchor_path],
+            stderr=subprocess.DEVNULL,
+        ).decode(errors="replace")
+    except subprocess.CalledProcessError:
+        return {}
+    commits = [c.strip() for c in out.split("---COMMIT---") if c.strip()]
+    if not commits:
+        return {}
+    counts: dict[str, int] = defaultdict(int)
+    for c in commits:
+        files = {ln.strip() for ln in c.splitlines() if ln.strip()}
+        for f in files:
+            if f == anchor_path:
+                continue
+            counts[f] += 1
+    total = len(commits)
+    return {f: round(n / total, 2) for f, n in counts.items() if n / total >= CO_CHANGE_THRESHOLD}
+
+
+def build_entity_shape(entity: str, cfg: dict) -> dict:
+    snake = _camel_to_snake(entity)
+    parents = cfg.get("parent_relationships") or {}
+    layers_cfg = cfg.get("parity_layers") or []
+    folder_hints = cfg.get("ios_feature_folder_hints") or {}
+
+    shape = {
+        "display_name": entity,
+        "snake": snake,
+        "parent": parents.get(entity),
+        "parity_layers": {},
+        "cochange_frequent": {},
+    }
+
+    Entity = entity
+    for layer in layers_cfg:
+        if not isinstance(layer, dict):
+            continue
+        name = layer.get("name")
+        glob_pat = layer.get("glob")
+        if not name or not glob_pat:
+            continue
+        expanded = _expand(glob_pat, Entity=Entity, snake=snake)
+        # Special placeholder: <FeatureFolder>
+        if "<FeatureFolder>" in expanded:
+            feat = folder_hints.get(entity)
+            if not feat:
+                continue
+            expanded = expanded.replace("<FeatureFolder>", feat)
+        absolute = expanded if expanded.startswith("/") else str(REPO_ROOT / expanded)
+        matches = sorted(glob.glob(absolute, recursive=True))
+        rel_matches = []
+        for m in matches:
+            try:
+                rel = str(Path(m).relative_to(REPO_ROOT))
+            except ValueError:
+                continue
+            if Path(m).is_dir():
+                rel += "/"
+            rel_matches.append(rel)
+        if rel_matches:
+            shape["parity_layers"][name] = rel_matches
+
+    # Co-change from the anchor file (first sync_service or whatever the
+    # first layer with `is_anchor: true` resolved to).
+    anchor_path = None
+    for layer in layers_cfg:
+        if isinstance(layer, dict) and layer.get("is_anchor"):
+            files = shape["parity_layers"].get(layer.get("name") or "") or []
+            if files:
+                anchor_path = files[0]
+                break
+    if anchor_path:
+        cochange = mine_cochange(anchor_path)
+        canonical = {f for files in shape["parity_layers"].values() for f in files if not f.endswith("/")}
+        shape["cochange_frequent"] = {f: freq for f, freq in cochange.items() if f not in canonical}
+
+    return shape
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--entity", help="single entity (debug)")
+    args = ap.parse_args()
+
+    cfg = _load_simple_yaml(CONFIG)
+    if not cfg:
+        # No config — emit an empty shapes file so resolver still loads.
+        payload = {
+            "generated_by": "qa/mine-entity-shapes.py",
+            "generated_at": subprocess.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"]).decode().strip(),
+            "entity_count": 0,
+            "entities": {},
+            "note": "No qa/entity-shapes.config.yaml — autonomic layer is dormant.",
+        }
+    else:
+        entities = discover_entities(cfg)
+        if args.entity:
+            if args.entity not in entities:
+                print(f"unknown entity: {args.entity}; discovered: {entities}", file=sys.stderr)
+                return 2
+            entities = [args.entity]
+        by_entity = {}
+        for ent in entities:
+            by_entity[_camel_to_snake(ent)] = build_entity_shape(ent, cfg)
+        payload = {
+            "generated_by": "qa/mine-entity-shapes.py",
+            "generated_at": subprocess.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"]).decode().strip(),
+            "entity_count": len(by_entity),
+            "cochange_window_commits": CO_CHANGE_WINDOW,
+            "cochange_threshold": CO_CHANGE_THRESHOLD,
+            "entities": by_entity,
+        }
+
+    text = json.dumps(payload, indent=2, sort_keys=False) + "\n"
+    if args.dry_run:
+        sys.stdout.write(text)
+        return 0
+    OUTPUT.write_text(text)
+    print(f"[mine-entity-shapes] wrote {OUTPUT.relative_to(REPO_ROOT)}  ({payload['entity_count']} entities)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

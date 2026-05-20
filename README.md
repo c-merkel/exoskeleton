@@ -1,6 +1,6 @@
 # exoskeleton
 
-A bundle of six Claude Code skills that bootstrap the **Operator-Architect multi-agent stack** from the [*Two Suits* builder's guide](https://christianmerkel.com/two-suits/builders-guide) into any project, local-first, in about ten minutes.
+A bundle of seven Claude Code skills that bootstrap the **Operator-Architect multi-agent stack** from the [*Two Suits* builder's guide](https://christianmerkel.com/two-suits/builders-guide) into any project, local-first, in about ten minutes.
 
 The article *Two Suits* tells the story. **The exoskeleton is what does the work.** This is the exoskeleton.
 
@@ -8,7 +8,7 @@ The article *Two Suits* tells the story. **The exoskeleton is what does the work
 
 ## What's in the bundle
 
-Six skills. Each invocable standalone. One orchestrator runs them in sequence.
+Seven skills. Each invocable standalone. One orchestrator runs the core six in sequence; the seventh is a conditional second-stage installer.
 
 ```
 .claude/skills/exoskeleton/
@@ -17,9 +17,19 @@ Six skills. Each invocable standalone. One orchestrator runs them in sequence.
 ├── exoskeleton-bootstrap/             ← Stage 0 — fresh-laptop setup (Docker, gh, MCP servers, GitHub auth)
 ├── exoskeleton-local/                 ← Docker compose + project-specific MCP wiring
 ├── exoskeleton-manual/                ← generates CLAUDE.md, agents, slash commands
-├── exoskeleton-guards/                ← installs the four non-AI guards + parity gate
+├── exoskeleton-guards/                ← installs four non-AI guards + five-layer autonomic sensing harness
+├── exoskeleton-memory/                ← second-stage installer for custom memory backends (BYO)
 └── exoskeleton-deploy/                ← VPS deployment wizard (after local is green)
 ```
+
+### Two layers of protection
+
+The guards skill installs **two complementary layers** that work together:
+
+- **Four Sentinels** *(stop the wrong thing)* — Pre-Change Protocol Hook, Schema-Verify, pre-commit Parity Check, post-commit KG Refresh. Non-AI guards that refuse destructive actions when prerequisites aren't met.
+- **Autonomic sensing harness** *(surface the right context)* — Ambient Impact (peripheral vision on first edit), Topic-Area Recall (deep memory on prompt), Self-Stop Watchdog (D1 edit-without-read + D2 rapid-fire detector), Correction-Learning (lessons captured to memory), Shape-Coverage Gate (pre-commit parity warning). Fail-silent without configuration — universally useful detectors active out of the box, entity-aware power-ups unlock when you customize `qa/entity-shapes.config.yaml`.
+
+The Sentinels never let you do the wrong thing. The autonomic layer makes sure you know the right thing before you start.
 
 The orchestrator probes the machine first — a **three-state check** on every prerequisite and every MCP server:
 
@@ -42,8 +52,11 @@ When the orchestrator finishes, you have:
 - A `docker-compose.yml` that mirrors a production topology
 - A `start.sh` one-command bootstrap
 - A `CLAUDE.md` operating manual filled in with your project's specifics
-- A `.claude/settings.json` wired to four hooks and the right permissions
-- Four guard scripts (`.claude/hooks/` + `.githooks/`)
+- A `.claude/settings.json` wired to all hooks and the right permissions
+- **Four guard scripts** (`.claude/hooks/`) — the Sentinels
+- **Five autonomic-layer hooks** (`.claude/hooks/`) — ambient-impact, recall-topic-area, self-stop-watchdog, learn-from-correction, plus shared libs lib-session + lib-memory
+- **Entity-shape registry** (`qa/lib/entity_shapes.py`, `qa/check-shape-coverage.py`, `qa/mine-entity-shapes.py`, `qa/entity-shapes.config.yaml.template`) — opt-in entity-aware peripheral vision
+- A pluggable memory backend (`mempalace` default, `file` fallback, `custom` via `/exoskeleton-memory`)
 - Three agent definitions (`.claude/agents/`)
 - Three slash commands (`.claude/commands/`)
 - A `parity-check.sh.template` you customize for your layers
@@ -117,7 +130,8 @@ You don't have to run the orchestrator. Each sub-skill is a slash command:
 /exoskeleton-bootstrap     # Stage 0 — fresh-laptop setup (Docker, gh, MCP, GitHub auth)
 /exoskeleton-local         # local Docker + project-specific MCP wiring
 /exoskeleton-manual        # generates the operating manual
-/exoskeleton-guards        # installs the four guards
+/exoskeleton-guards        # installs the four Sentinels + the autonomic sensing harness
+/exoskeleton-memory        # second-stage installer when you picked "bring your own" memory backend
 /exoskeleton-deploy        # VPS deployment wizard
 ```
 

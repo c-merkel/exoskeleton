@@ -43,6 +43,16 @@
         ]
       },
       {
+        "matcher": "Read|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/ambient-impact.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
         "matcher": "mcp__.*__execute_sql",
         "hooks": [
           {
@@ -59,6 +69,34 @@
             "type": "command",
             "command": ".claude/hooks/kg-staleness-check.sh",
             "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/self-stop-watchdog.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/recall-topic-area.sh",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/learn-from-correction.sh",
+            "timeout": 10000
           }
         ]
       }

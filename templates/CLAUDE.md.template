@@ -76,6 +76,20 @@ When a Sentinel refuses: **almost never override.** Ask why it's right.
 
 ---
 
+## The Autonomic Layer — peripheral vision, drift reflex, lesson-learning
+
+The Sentinels stop you from doing the wrong thing. The autonomic layer surfaces the **right** context before you start. All five fail-silent when their preconditions are missing — a project without entity definitions in `qa/entity-shapes.config.yaml` gets no false noise.
+
+1. **Ambient Impact** *(PreToolUse Read|Edit|Write)* — on first Edit touching a known entity, surfaces the entity's parity-layer fingerprint with the layers you haven't touched yet flagged. Silent on subsequent edits. Override: `<PROJECT_SLUG>_SKIP_AMBIENT=1`.
+2. **Topic-Area Recall** *(UserPromptSubmit)* — when your prompt mentions a known entity, injects recent diary + task observations about that area as additional context. Backend pluggable via `<PROJECT_SLUG>_MEMORY_BACKEND` (mempalace | file | custom | none). Override: `<PROJECT_SLUG>_SKIP_TOPIC_RECALL=1`.
+3. **Self-Stop Watchdog** *(PostToolUse Edit)* — fires **D1** when you edit a file never Read this session, **D2** when you've edited the same file 3+ times in a row without verifying. Warn-only. Override: `<PROJECT_SLUG>_SKIP_WATCHDOG=1`.
+4. **Correction-Learning** *(UserPromptSubmit)* — captures high-confidence operator corrections ("you missed", "from now on always", "rule:") into memory backend, tagged by entity area. Future sessions in the same area auto-recall. Override: `<PROJECT_SLUG>_SKIP_LEARN=1`.
+5. **Shape-Coverage Gate** *(pre-commit)* — warns when you stage a synced entity's anchor file but omit the critical paired layers (iOS Codable / wire-spec / projection). Driven by `qa/entity-shapes.config.yaml` → `critical_pairings`. Override: `<PROJECT_SLUG>_SKIP_SHAPE_CHECK=1`.
+
+To activate the entity-aware layers, customize `qa/entity-shapes.config.yaml` then run `python3 qa/mine-entity-shapes.py`. The watchdog + correction-learning work universally without any entity setup.
+
+---
+
 ## Sub-agent tiers
 
 | Tier | Agent | Model | Job |

@@ -21,6 +21,18 @@ if [ -z "$STAGED" ]; then
   exit 0  # Nothing staged
 fi
 
+# ──────────────────────────────────────────────────────────────────────
+# Autonomic Step — shape-coverage check (warn-only, never blocks)
+# Fires before the parity gate. Catches the broader "you staged a synced
+# entity but forgot the iOS Codable / wire-spec" class. Reads from
+# qa/entity-shapes.json (produced by qa/mine-entity-shapes.py).
+# Override: <PROJECT_SLUG>_SKIP_SHAPE_CHECK=1
+# ──────────────────────────────────────────────────────────────────────
+SHAPE_CHECK="$(git rev-parse --show-toplevel)/qa/check-shape-coverage.py"
+if [ "${<PROJECT_SLUG>_SKIP_SHAPE_CHECK:-0}" != "1" ] && [ -f "$SHAPE_CHECK" ]; then
+  python3 "$SHAPE_CHECK" --quiet || true
+fi
+
 # Define which file patterns trigger a parity check — customize for your project.
 # Generally any file that's part of a synced layer: schema migrations, API serializers,
 # admin views, mobile schema, public templates that render shared data.

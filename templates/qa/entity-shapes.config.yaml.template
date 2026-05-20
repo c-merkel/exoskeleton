@@ -1,0 +1,82 @@
+# qa/entity-shapes.config.yaml — declares YOUR project's entity conventions.
+#
+# Read by `python3 qa/mine-entity-shapes.py` to produce qa/entity-shapes.json,
+# which the autonomic-layer hooks consume.
+#
+# Without this file (or with an empty one), the autonomic layer stays dormant —
+# every hook silently resolves "no entity" and exits. Customize then run the
+# miner to activate.
+#
+# Pattern placeholders the miner expands per-entity:
+#   <Entity>         the CamelCase entity name (e.g. Customer)
+#   <entity>         lowercase (e.g. customer)
+#   <snake>          snake_case (e.g. customer_interaction)
+#   <kebab>          kebab-case (e.g. customer-interaction)
+#   <FeatureFolder>  the consumer-supplied UI folder hint (see ios_feature_folder_hints)
+#
+# All glob paths are relative to repo root unless absolute.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# WORKED EXAMPLE — the FMM reference stack (PHP + iOS + MariaDB sync layer).
+# Uncomment + customize for your project, OR replace wholesale.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# anchor_glob: website/app/Services/Sync/*SyncService.php
+# anchor_name_regex: '^(?P<name>.+)SyncService\.php$'
+# anchor_exclude:
+#   - Base       # skip BaseSyncService
+
+# parity_layers:
+#   - name: sync_service
+#     is_anchor: true
+#     glob: website/app/Services/Sync/<Entity>SyncService.php
+#   - name: service
+#     glob: website/app/Services/<Entity>Service.php
+#   - name: controller
+#     glob: website/app/Controllers/<Entity>Controller.php
+#   - name: admin_view
+#     glob: website/app/Views/admin/<snake>s.php
+#   - name: migrations
+#     glob: website/database/init/*<snake>*.sql
+#   - name: sync_store
+#     glob: ios-app/<App>/Sync/Stores/<Entity>Store.swift
+#   - name: feature_folder
+#     glob: ios-app/<App>/<FeatureFolder>/
+#   - name: wire_spec
+#     glob: docs/sync-design/<snake>-wire-spec.md
+
+# parent_relationships:
+#   BookingAttendee:        Booking
+#   CustomerInteraction:    Customer
+#   LeadActivity:           Lead
+#   QuoteLineItem:          Quote
+#   MagicHourRegistration:  MagicHour
+#   CollectionItem:         GalleryCollection
+
+# ios_feature_folder_hints:
+#   Customer:               Customers
+#   Lead:                   Pipeline
+#   Quote:                  Quotes
+#   Invoice:                Finance
+#   Payment:                Finance
+#   Booking:                Calendar
+#   MagicHour:              MagicHours
+#   Waiver:                 Waivers
+#   Media:                  MediaLibrary
+#   Receipt:                Receipts
+
+# critical_pairings:
+#   # When this layer is staged, these layers should usually move with it.
+#   # The shape-coverage gate (.githooks/pre-commit) warns when they don't.
+#   sync_service: [sync_store, wire_spec]
+#   sync_store:   [sync_service]
+#   migrations:   [sync_service]
+
+# uncovered_by_parity_check:
+#   # Entities not yet covered by your deeper static-parity tool. Listed here
+#   # so the shape gate can emit an info note when they're touched, prompting
+#   # the operator to either add coverage or smoke-test by hand.
+#   - booking_attendee
+#   - customer_interaction
+#   - media
+#   - waiver
