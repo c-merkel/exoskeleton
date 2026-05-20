@@ -162,6 +162,7 @@ The full Two Suits universe lives at [**christianmerkel.com/two-suits**](https:/
 
 - **Two Suits — Information Hub:** [christianmerkel.com/two-suits](https://christianmerkel.com/two-suits) — the landing page; pick your door from there.
 - **Start Here:** [the friendly walkthrough](https://christianmerkel.com/two-suits/start-here) — fit your own exoskeleton in 11 stages, about 30 minutes, no jargon.
+- **The Showcase:** [see what it built](https://christianmerkel.com/two-suits/showcase) — a real production business in 16 screenshots: public site, web admin, native iOS.
 - **The Story:** [*Two Suits*](https://christianmerkel.com/two-suits/story) — first-person narrative of the build.
 - **The Builder's Guide:** [*Two Suits — Builder's Guide*](https://christianmerkel.com/two-suits/builders-guide) — the architecture as a map; 11 stations, 3 modes each.
 - **The Graphic Novel:** [*Two Suits — The Graphic Novel*](https://christianmerkel.com/two-suits/comic) — the painterly cinematic companion.
