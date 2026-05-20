@@ -1,0 +1,12 @@
+# Local-only notes — not part of the published bundle.
+# Captures the relationship between the public exoskeleton and the canonical
+# consumer (FMM), operational tips for the upstream channel, and anything else
+# Chris wants to keep on his machine without leaking into the public repo.
+local/
+
+# Editor / OS noise.
+.DS_Store
+*.swp
+*.swo
+__pycache__/
+*.pyc
