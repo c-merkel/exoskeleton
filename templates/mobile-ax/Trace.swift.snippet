@@ -1,0 +1,35 @@
+// Trace.swift — append these 4 APIs to your existing Trace logger.
+// Assumes a `log(_ source: Source, evt: String, ctx: [String: Any])` impl
+// that writes a JSONL event to `<app-sandbox>/Documents/<your-trace>.jsonl`.
+// Adapt the underlying `log` call to match your project's logger.
+
+extension Trace {
+    /// Emit a `view.appear` event. Use in `.onAppear { Trace.viewAppear("CustomerDetail", ["id": c.id]) }`.
+    static func viewAppear(_ name: String, _ ctx: [String: Any] = [:]) {
+        var payload = ctx
+        payload["view"] = name
+        log(.nav, evt: "view.appear", ctx: payload)
+    }
+
+    /// Emit a `view.disappear` event. Optional companion to viewAppear.
+    static func viewDisappear(_ name: String, _ ctx: [String: Any] = [:]) {
+        var payload = ctx
+        payload["view"] = name
+        log(.nav, evt: "view.disappear", ctx: payload)
+    }
+
+    /// Emit an `action` event with a `<entity>.<verb>` key. Use on every primary action button.
+    static func action(_ key: String, _ ctx: [String: Any] = [:]) {
+        var payload = ctx
+        payload["action"] = key
+        log(.ui, evt: "action", ctx: payload)
+    }
+
+    /// Emit a `form.submit` event capturing the field-set the form sent.
+    /// Use on every form save so the harness can verify the right body was assembled.
+    static func formSubmit(_ form: String, _ ctx: [String: Any] = [:]) {
+        var payload = ctx
+        payload["form"] = form
+        log(.ui, evt: "form.submit", ctx: payload)
+    }
+}

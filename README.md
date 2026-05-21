@@ -8,7 +8,7 @@ The article *Two Suits* tells the story. **The exoskeleton is what does the work
 
 ## What's in the bundle
 
-Eight skills. Each invocable standalone. One orchestrator runs the core six in sequence; the others are conditional installers + the upstream-promotion channel.
+Nine skills. Each invocable standalone. One orchestrator runs the core six in sequence; the others are conditional installers + the upstream-promotion channel + the iOS / mobile programmatic-debuggability layer.
 
 ```
 .claude/skills/exoskeleton/
@@ -20,8 +20,13 @@ Eight skills. Each invocable standalone. One orchestrator runs the core six in s
 ├── exoskeleton-guards/                ← installs four non-AI guards + five-layer autonomic sensing harness
 ├── exoskeleton-memory/                ← second-stage installer for custom memory backends (BYO)
 ├── exoskeleton-deploy/                ← VPS deployment wizard (after local is green)
-└── exoskeleton-promote/               ← upstream channel — periodic consumer→bundle improvement lift
+├── exoskeleton-promote/               ← upstream channel — periodic consumer→bundle improvement lift
+└── exoskeleton-mobile-ax/             ← iOS / SwiftUI programmatic-debuggability layer (auto-surfaces on iOS work)
 ```
+
+### Mobile AX layer (iOS / SwiftUI consumers)
+
+If your project includes a SwiftUI app, the `exoskeleton-mobile-ax` skill installs a canonical accessibility-identifier + diagnostic-trace layer so the agent's QA harness can drive every flow programmatically — no coordinate guessing, no screenshot loops, no ~30K-token-per-shot drag. Every new view picks up a 4-point checklist (`.ax(...)`, `Trace.viewAppear`, `Trace.action`, `Trace.formSubmit`); a PreToolUse nudge hook reminds on Edit/Write of view files; a coverage tracker keeps the ledger honest. Real VoiceOver users benefit too — `.ax(_:)` sets identifier AND label from one call. Templates at `templates/mobile-ax/`, hook at `templates/hooks/nudge-mobile-ax-on-view-edit.sh`.
 
 The promote skill closes the loop: improvements you make in your consumer project (a tighter detector, a new entity-shape pattern, a better correction-pattern regex) get inventoried, classified, and lifted back to the public bundle as a transactional PR. The exoskeleton learns from every consumer that uses it.
 

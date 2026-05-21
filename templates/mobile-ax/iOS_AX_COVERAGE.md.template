@@ -1,0 +1,30 @@
+# iOS Accessibility Coverage Tracker
+
+Tracks which view surfaces are instrumented with `.ax(_:)` identifiers + `Trace.viewAppear` + `Trace.action` events. When a flow's coverage goes ✅ across all three columns, its paired `qa/smoke-<flow>.sh` script can drive permutation tests without coordinates or screenshots.
+
+Legend: ✅ done · 🟡 partial (priority controls only) · ⬜ pending · ⊘ N/A (uninstrumentable, see notes)
+
+---
+
+## Tab + global
+
+| Surface | viewAppear | .ax identifiers | Action events | Notes |
+|---|---|---|---|---|
+| TabView | ⬜ each tab view | ⊘ UIKit UITabBar doesn't expose .ax from SwiftUI .tabItem | — | Coordinate fallback in smoke script |
+| FAB button | ⬜ | ⬜ `fab-button` | ⬜ Trace.action per chip | |
+
+## <Replace-with-your-entity> flow
+
+| Surface | viewAppear | .ax identifiers | Action events | Smoke script |
+|---|---|---|---|---|
+| ListView | ⬜ | ⬜ `<entity>-row-{id}` | — | smoke pending |
+| DetailView | ⬜ | ⬜ menu btns | ⬜ | smoke pending |
+| EditSheet | ⬜ | ⬜ every field + save/cancel | ⬜ Trace.formSubmit | smoke pending |
+
+(Add a section per major flow as the app grows.)
+
+---
+
+## How to update this tracker
+
+When you instrument a view: flip the column emoji and add the smoke script name. When the smoke script lands: link it. When a flow goes 100%, surface that win in the commit message ("Customer CRUD coverage 100% — `smoke-customer-crud.sh` exercises 22 permutations").

@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# qa/smoke-ios-flows.sh — programmatic iOS flow smoke driver
+#
+# Drives the iOS sim via `xcodebuildmcp` CLI + `.ax(_:)` ids + `Trace.viewAppear`
+# assertions. No coordinate guessing, no screenshot parsing. Requires the app
+# to be instrumented per /exoskeleton-mobile-ax.
+#
+# Usage:
+#   xcodebuildmcp boot-sim
+#   xcodebuildmcp launch-app --bundle-id <com.your.app>
+#   bash qa/smoke-ios-flows.sh
+#
+# Reads trace events from the app sandbox:
+#   ~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Data/
+#     Application/<APP-UUID>/Documents/<your-trace>.jsonl
+#
+# Exit 0 = all assertions pass · Exit 1 = at least one failed.
+
+set -u
+FAIL=0
+TRACE_FILE="${TRACE_FILE:-$HOME/Library/Developer/CoreSimulator/Devices/$(xcrun simctl list devices booted -j | jq -r '.devices | to_entries[].value[] | select(.state=="Booted") | .udid' | head -1)/data/Containers/Data/Application/$(find "$HOME/Library/Developer/CoreSimulator/Devices" -name 'sync-trace.jsonl' 2>/dev/null | head -1 | sed -E 's|.*/Application/([^/]+)/.*|\1|')/Documents/sync-trace.jsonl}"
+
+# Helper: tap by accessibility id
+tap() {
+    local id="$1"
+    xcodebuildmcp ui-automation tap --id "$id" 2>/dev/null
+    sleep 0.4
+}
+
+# Helper: assert a viewAppear event was logged in the last 2 seconds
+assert_view() {
+    local view="$1"
+    local since=$(date -v-2S +%s 2>/dev/null || date -d '2 seconds ago' +%s)
+    if tail -200 "$TRACE_FILE" 2>/dev/null | \
+       jq -e --arg v "$view" --argjson since "$since" \
+         'select(.evt == "view.appear" and .ctx.view == $v and .ts >= $since)' \
+         >/dev/null; then
+        echo "✓ view.appear $view"
+    else
+        echo "✗ view.appear $view (not seen in last 2s)"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# Helper: assert a Trace.action key fired
+assert_action() {
+    local key="$1"
+    local since=$(date -v-2S +%s 2>/dev/null || date -d '2 seconds ago' +%s)
+    if tail -200 "$TRACE_FILE" 2>/dev/null | \
+       jq -e --arg k "$key" --argjson since "$since" \
+         'select(.evt == "action" and .ctx.action == $k and .ts >= $since)' \
+         >/dev/null; then
+        echo "✓ action $key"
+    else
+        echo "✗ action $key (not seen in last 2s)"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+# === EXAMPLE FLOW: customer list → detail → edit → save ===
+# Replace with your project's flows.
+#
+# tap "tab-clients"
+# assert_view "ClientsList"
+# tap "customer-row-1"
+# assert_view "CustomerDetail"
+# tap "customer-detail-edit-btn"
+# assert_view "CustomerEdit"
+# tap "customer-edit-save-btn"
+# assert_action "customer.save"
+
+echo
+if [ $FAIL -eq 0 ]; then
+    echo "OK — all assertions passed"
+    exit 0
+else
+    echo "FAIL — $FAIL assertion(s) failed"
+    exit 1
+fi
